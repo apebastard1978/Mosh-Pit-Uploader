@@ -423,7 +423,8 @@
 
         function renderAiInputs() {
             const selectedType = aiQuestionTypeSelect.value;
-            aiInputsContainer.innerHTML = '';
+            aiInputsContainer.innerHTML = ''; 
+            
             if (selectedType === 'album-year') {
                 aiInputsContainer.innerHTML = `
                     <div class="space-y-4">
@@ -502,7 +503,7 @@
                 const cleanedText = text.replace(/```json|```/g, '').trim();
                 const generatedData = JSON.parse(cleanedText);
 
-                manualTab.click();
+                switchTab('manual');
                 
                 setTimeout(() => {
                     document.getElementById('category').value = categoryToSet;
