@@ -27,12 +27,12 @@
         }
     </style>
 </head>
-<body class="bg-black text-white min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-black text-white min-h-screen flex flex-col items-center justify-center p-2 sm:p-4">
 
-    <div class="w-full max-w-4xl bg-gray-900 border-2 border-gray-700 rounded-lg p-6 shadow-lg">
-        <h1 class="text-3xl font-bold text-red-600 mb-4 text-center">Question Content Manager</h1>
+    <div class="w-full max-w-4xl bg-gray-900 border-2 border-gray-700 rounded-lg p-4 sm:p-6 shadow-lg">
+        <h1 class="text-2xl sm:text-3xl font-bold text-red-600 mb-4 text-center">Question Content Manager</h1>
         
-        <div class="flex border-b border-gray-700 mb-6">
+        <div class="flex border-b border-gray-700 mb-6 flex-wrap">
             <div id="manage-tab" class="tab active">Manage Questions</div>
             <div id="manual-tab" class="tab">Add/Edit Question</div>
             <div id="ai-tab" class="tab">AI Generator</div>
@@ -125,7 +125,7 @@
         <!-- AI Generator Tab -->
         <div id="ai-uploader" style="display: none;">
              <div class="bg-gray-800 border-l-4 border-red-600 p-4 mb-6">
-                <p class="text-gray-300">Select a question type, enter the facts, and let AI generate the rest. The result will appear in the "Add/Edit" tab for you to review and save.</p>
+                <p class="text-gray-300">Select a question type, enter the facts, and let AI generate the rest.</p>
             </div>
             <div class="space-y-4">
                 <div>
@@ -264,13 +264,13 @@
 
             filtered.forEach(q => {
                 const item = document.createElement('div');
-                item.className = 'p-2 bg-gray-700 rounded flex justify-between items-center';
+                item.className = 'p-2 bg-gray-700 rounded flex justify-between items-center flex-wrap gap-2';
                 item.innerHTML = `
-                    <div>
+                    <div class="flex-grow">
                         <p class="font-bold">${q.question}</p>
                         <p class="text-sm text-gray-400">Category: ${q.category || 'N/A'} | Season: ${q.season || 'N/A'} | Topic: ${q.topic}</p>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 flex-shrink-0">
                         <button data-id="${q.id}" class="edit-btn bg-blue-600 text-xs px-2 py-1 rounded">Edit</button>
                         <button data-id="${q.id}" class="delete-btn bg-red-700 text-xs px-2 py-1 rounded">Delete</button>
                     </div>
@@ -418,12 +418,136 @@
         const aiQuestionTypeSelect = document.getElementById('ai-question-type');
         const aiInputsContainer = document.getElementById('ai-inputs');
 
-        function renderAiInputs() { /* ... */ } // This function remains the same
+        function renderAiInputs() {
+            const selectedType = aiQuestionTypeSelect.value;
+            aiInputsContainer.innerHTML = ''; 
+            
+            if (selectedType === 'album-year') {
+                aiInputsContainer.innerHTML = `
+                    <div class="space-y-4">
+                        <div><label for="ai-band" class="block mb-2 text-sm font-medium">Band Name</label><input type="text" id="ai-band" placeholder="e.g., Slayer"></div>
+                        <div><label for="ai-album" class="block mb-2 text-sm font-medium">Album Title</label><input type="text" id="ai-album" placeholder="e.g., Reign in Blood"></div>
+                        <div><label for="ai-year" class="block mb-2 text-sm font-medium">Release Year</label><input type="text" id="ai-year" placeholder="e.g., 1986"></div>
+                    </div>`;
+            } else if (selectedType === 'song-lyric') {
+                aiInputsContainer.innerHTML = `
+                    <div class="space-y-4">
+                        <div><label for="ai-band" class="block mb-2 text-sm font-medium">Band Name</label><input type="text" id="ai-band" placeholder="e.g., Slayer"></div>
+                        <div><label for="ai-lyric" class="block mb-2 text-sm font-medium">Lyric Snippet</label><input type="text" id="ai-lyric" placeholder="e.g., Raining blood from a lacerated sky"></div>
+                        <div><label for="ai-song" class="block mb-2 text-sm font-medium">Correct Song Title</label><input type="text" id="ai-song" placeholder="e.g., Raining Blood"></div>
+                    </div>`;
+            } else if (selectedType === 'song-album') {
+                 aiInputsContainer.innerHTML = `
+                    <div class="space-y-4">
+                        <div><label for="ai-band" class="block mb-2 text-sm font-medium">Band Name</label><input type="text" id="ai-band" placeholder="e.g., Death"></div>
+                        <div><label for="ai-song" class="block mb-2 text-sm font-medium">Song Title</label><input type="text" id="ai-song" placeholder="e.g., Crystal Mountain"></div>
+                        <div><label for="ai-album" class="block mb-2 text-sm font-medium">Correct Album Title</label><input type="text" id="ai-album" placeholder="e.g., Symbolic"></div>
+                    </div>`;
+            }
+        }
 
         aiQuestionTypeSelect.addEventListener('change', renderAiInputs);
         renderAiInputs(); 
         
-        generateButton.addEventListener('click', async () => { /* ... This function remains the same ... */ });
+        generateButton.addEventListener('click', async () => {
+            const questionType = aiQuestionTypeSelect.value;
+            let userQuery = '';
+            let categoryToSet = 'bulk';
+
+            if (questionType === 'album-year') {
+                const band = document.getElementById('ai-band').value.trim();
+                const album = document.getElementById('ai-album').value.trim();
+                const year = document.getElementById('ai-year').value.trim();
+                if (!band || !album || !year) { aiStatusMessage.textContent = "Please fill all fields."; aiStatusMessage.style.color = 'red'; return; }
+                userQuery = `Create a multiple-choice trivia question asking what year the band '${band}' released the album ${album}. The correct answer is ${year}. Generate three plausible but incorrect year choices. In the generated "question" text, do not put quotation marks or any other brackets around the album title. Format the output as a JSON object with keys: topic, question, "answer a", "answer b", "answer c", "answer d", and "correct answer". The topic should be the band name.`;
+            } else if (questionType === 'song-lyric') {
+                const band = document.getElementById('ai-band').value.trim();
+                const lyric = document.getElementById('ai-lyric').value.trim();
+                const song = document.getElementById('ai-song').value.trim();
+                if (!band || !lyric || !song) { aiStatusMessage.textContent = "Please fill all fields."; aiStatusMessage.style.color = 'red'; return; }
+                userQuery = `Create a multiple-choice trivia question for the following lyric: "${lyric}". The question should ask "Which ${band} song features this lyric?". The correct answer is "${song}". Generate three other plausible song titles by ${band} as incorrect answers. In the generated "question" text, ensure the song title is enclosed in double quotes. Format the output as a JSON object with keys: topic, question, "answer a", "answer b", "answer c", "answer d", and "correct answer". The topic should be the band name.`;
+                categoryToSet = 'curated';
+            } else if (questionType === 'song-album') {
+                const band = document.getElementById('ai-band').value.trim();
+                const song = document.getElementById('ai-song').value.trim();
+                const album = document.getElementById('ai-album').value.trim();
+                if (!band || !song || !album) { aiStatusMessage.textContent = "Please fill all fields."; aiStatusMessage.style.color = 'red'; return; }
+                userQuery = `Create a multiple-choice trivia question asking on what album the song "${song}" by ${band} is included. The correct answer is "${album}". Generate three other plausible album titles by ${band} as incorrect answers. In the generated "question" text, ensure the song title is enclosed in double quotes. Format the output as a JSON object with keys: topic, question, "answer a", "answer b", "answer c", "answer d", and "correct answer". The topic should be the band name.`;
+                categoryToSet = 'bulk';
+            }
+
+            aiStatusMessage.textContent = 'Generating question with AI...';
+            aiStatusMessage.style.color = 'white';
+            generateButton.disabled = true;
+            generateButton.textContent = 'Generating...';
+
+            const apiKey = "AIzaSyD3EObxZ1XWXXsliYx38AVmeM0PjleP7wQ";
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const payload = { contents: [{ parts: [{ text: userQuery }] }] };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                
+                const result = await response.json();
+                const text = result.candidates[0].content.parts[0].text;
+                
+                const cleanedText = text.replace(/```json|```/g, '').trim();
+                const generatedData = JSON.parse(cleanedText);
+
+                manualTab.click();
+                
+                setTimeout(() => {
+                    document.getElementById('category').value = categoryToSet;
+                    document.getElementById('topic').value = generatedData.topic || '';
+                    document.getElementById('question').value = generatedData.question || '';
+                    document.getElementById('imageUrl').value = '';
+                    document.getElementById('answer-a').value = generatedData['answer a'] || '';
+                    document.getElementById('answer-b').value = generatedData['answer b'] || '';
+                    document.getElementById('answer-c').value = generatedData['answer c'] || '';
+                    document.getElementById('answer-d').value = generatedData['answer d'] || '';
+                    
+                    document.querySelectorAll('input[name="correct-answer"]').forEach(radio => radio.checked = false);
+                    
+                    let correctLetter = 'A'; 
+                    const aiCorrectAnswer = generatedData['correct answer']; 
+
+                    if (aiCorrectAnswer === generatedData['answer a']) { correctLetter = 'A'; }
+                    else if (aiCorrectAnswer === generatedData['answer b']) { correctLetter = 'B'; }
+                    else if (aiCorrectAnswer === generatedData['answer c']) { correctLetter = 'C'; }
+                    else if (aiCorrectAnswer === generatedData['answer d']) { correctLetter = 'D'; }
+                    else if (['A', 'B', 'C', 'D'].includes(aiCorrectAnswer.toUpperCase())) {
+                        correctLetter = aiCorrectAnswer.toUpperCase();
+                    }
+
+                    const correctRadioToSelect = document.querySelector(`input[name="correct-answer"][value="${correctLetter}"]`);
+                    if (correctRadioToSelect) {
+                        correctRadioToSelect.checked = true;
+                    } else {
+                        document.getElementById('correct-a').checked = true; 
+                    }
+
+                    statusMessage.textContent = 'AI-generated question is ready for review. Edit if needed and save.';
+                    statusMessage.style.color = 'green';
+                }, 10); 
+                
+                aiStatusMessage.textContent = '';
+                renderAiInputs();
+
+            } catch (error) {
+                aiStatusMessage.textContent = `Error generating question: ${error.message}`;
+                aiStatusMessage.style.color = 'red';
+                console.error("AI Generation Error:", error);
+            } finally {
+                 generateButton.disabled = false;
+                 generateButton.textContent = 'Generate Question';
+            }
+        });
         
         // --- Bulk Uploader Logic ---
         const bulkUploadButton = document.getElementById('bulk-upload-button');
@@ -473,7 +597,6 @@
                 bulkUploadButton.textContent = 'Upload JSON';
             }
         });
-
         
         // Initial Load
         loadAndRenderQuestions();
@@ -481,4 +604,3 @@
     </script>
 </body>
 </html>
-
