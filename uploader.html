@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mosh Pit Trivia - Content Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+        body { font-family: 'Special Elite', monospace; }
+        input[type="text"], input[type="number"], select, textarea {
+            background-color: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            color: #FFFFFF;
+            width: 100%;
+        }
+        .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom-color: #B91C1C;
+            color: #B91C1C;
+        }
+    </style>
+</head>
+<body class="bg-black text-white min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-4xl bg-gray-900 border-2 border-gray-700 rounded-lg p-6 shadow-lg">
+        <h1 class="text-3xl font-bold text-red-600 mb-4 text-center">Question Content Manager</h1>
+        
+        <div class="flex border-b border-gray-700 mb-6">
+            <div id="manage-tab" class="tab active">Manage Questions</div>
+            <div id="manual-tab" class="tab">Add/Edit Question</div>
+            <div id="ai-tab" class="tab">AI Generator</div>
+            <div id="bulk-tab" class="tab">Bulk JSON Upload</div>
+        </div>
+
+        <!-- Manage Questions Tab -->
+        <div id="manage-uploader">
+            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                <input type="text" id="search-input" placeholder="Search questions...">
+                <select id="category-filter">
+                    <option value="">All Categories</option>
+                    <option value="bulk">Bulk</option>
+                    <option value="curated">Curated</option>
+                    <option value="picture">Picture</option>
+                </select>
+                <input type="number" id="season-filter" placeholder="Filter by Season">
+            </div>
+            <div id="question-list-container" class="space-y-2 h-96 overflow-y-auto p-2 bg-gray-800 rounded">
+                <!-- Questions will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Manual Uploader Tab -->
+        <div id="manual-uploader" style="display: none;">
+            <div class="bg-gray-800 border-l-4 border-red-600 p-4 mb-6">
+                <p id="form-helper-text" class="text-gray-300">Fill out the form below to add a new question.</p>
+            </div>
+            
+            <form id="question-form" class="space-y-4">
+                <input type="hidden" id="edit-id" value="">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="category" class="block mb-2 text-sm font-medium text-gray-300">Category</label>
+                        <select id="category" name="category">
+                            <option value="bulk">Bulk Question</option>
+                            <option value="curated">Curated Question</option>
+                            <option value="picture">Picture Question</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="season" class="block mb-2 text-sm font-medium text-gray-300">Season</label>
+                        <input type="number" id="season" name="season" value="1" min="1" required>
+                    </div>
+                </div>
+                 <div id="picture-options" class="hidden space-y-4">
+                    <div>
+                        <label for="picture-type" class="block mb-2 text-sm font-medium text-gray-300">Picture Question Type</label>
+                        <select id="picture-type">
+                            <option value="band">Band Recognition</option>
+                            <option value="album">Album Recognition</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="topic" class="block mb-2 text-sm font-medium text-gray-300">Topic</label>
+                    <input type="text" id="topic" name="topic" placeholder="e.g., Band Recognition" required>
+                </div>
+                <div>
+                    <label for="question" class="block mb-2 text-sm font-medium text-gray-300">Question Text</label>
+                    <input type="text" id="question" name="question" placeholder="e.g., Which band is this?" required>
+                </div>
+                 <div>
+                    <label for="imageUrl" class="block mb-2 text-sm font-medium text-gray-300">Image URL (Optional)</label>
+                    <input type="text" id="imageUrl" name="imageUrl" placeholder="https://i.imgur.com/your-image.jpg">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label for="answer-a" class="block mb-2 text-sm font-medium">Answer A</label><input type="text" id="answer-a" name="answer-a" required></div>
+                    <div><label for="answer-b" class="block mb-2 text-sm font-medium">Answer B</label><input type="text" id="answer-b" name="answer-b" required></div>
+                    <div><label for="answer-c" class="block mb-2 text-sm font-medium">Answer C</label><input type="text" id="answer-c" name="answer-c" required></div>
+                    <div><label for="answer-d" class="block mb-2 text-sm font-medium">Answer D</label><input type="text" id="answer-d" name="answer-d" required></div>
+                </div>
+
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-300">Correct Answer</label>
+                    <div class="flex items-center gap-x-6 gap-y-2 flex-wrap">
+                        <div class="flex items-center"><input id="correct-a" name="correct-answer" type="radio" value="A" class="h-4 w-4 text-red-600" checked><label for="correct-a" class="ml-2">A</label></div>
+                        <div class="flex items-center"><input id="correct-b" name="correct-answer" type="radio" value="B" class="h-4 w-4 text-red-600"><label for="correct-b" class="ml-2">B</label></div>
+                        <div class="flex items-center"><input id="correct-c" name="correct-answer" type="radio" value="C" class="h-4 w-4 text-red-600"><label for="correct-c" class="ml-2">C</label></div>
+                        <div class="flex items-center"><input id="correct-d" name="correct-answer" type="radio" value="D" class="h-4 w-4 text-red-600"><label for="correct-d" class="ml-2">D</label></div>
+                    </div>
+                </div>
+
+                <button id="upload-button" type="submit" class="mt-4 w-full bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded transition">Add Question</button>
+            </form>
+            <div id="status-message" class="mt-4 text-center"></div>
+        </div>
+        
+        <!-- AI Generator Tab -->
+        <div id="ai-uploader" style="display: none;">
+             <div class="bg-gray-800 border-l-4 border-red-600 p-4 mb-6">
+                <p class="text-gray-300">Select a question type, enter the facts, and let AI generate the rest. The result will appear in the "Add/Edit" tab for you to review and save.</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label for="ai-question-type" class="block mb-2 text-sm font-medium text-gray-300">Question Type</label>
+                    <select id="ai-question-type">
+                        <option value="album-year">Album Release Year</option>
+                        <option value="song-lyric">Song from Lyric</option>
+                        <option value="song-album">Song on Album</option>
+                    </select>
+                </div>
+                <div id="ai-inputs"></div>
+                <button id="generate-button" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">Generate Question</button>
+            </div>
+             <div id="ai-status-message" class="mt-4 text-center"></div>
+        </div>
+        
+        <!-- Bulk JSON Uploader Tab -->
+        <div id="bulk-uploader" style="display: none;">
+            <div class="bg-gray-800 border-l-4 border-red-600 p-4 mb-6">
+                <p class="text-gray-300">Paste the entire content of your <code>questions.json</code> file into the text box below and click the upload button.</p>
+            </div>
+            <textarea id="json-input" class="w-full h-96 bg-gray-800 border border-gray-600 rounded p-2 text-white font-mono" placeholder='[ { "topic": "...", "category": "bulk", ... } ]'></textarea>
+            <button id="bulk-upload-button" class="mt-4 w-full bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded transition">Upload JSON</button>
+            <div id="bulk-status-message" class="mt-4 text-center"></div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, query, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyDWRy98n7R2T-_iAWZKFJHoo9q7ISms1oA",
+          authDomain: "mosh-pit-trivia.firebaseapp.com",
+          projectId: "mosh-pit-trivia",
+          storageBucket: "mosh-pit-trivia.appspot.com",
+          messagingSenderId: "49415406295",
+          appId: "1:49415406295:web:a6c6ad785af58fd4f9a692",
+          measurementId: "G-6L8WR5T0VT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- Global State ---
+        let allQuestions = []; // To cache questions for filtering
+
+        // --- DOM Elements ---
+        const tabs = {
+            manage: document.getElementById('manage-tab'),
+            manual: document.getElementById('manual-tab'),
+            ai: document.getElementById('ai-tab'),
+            bulk: document.getElementById('bulk-tab'),
+        };
+        const pages = {
+            manage: document.getElementById('manage-uploader'),
+            manual: document.getElementById('manual-uploader'),
+            ai: document.getElementById('ai-uploader'),
+            bulk: document.getElementById('bulk-uploader'),
+        };
+        const form = document.getElementById('question-form');
+        const uploadButton = document.getElementById('upload-button');
+        const statusMessage = document.getElementById('status-message');
+        const imageUrlInput = document.getElementById('imageUrl');
+        const categorySelect = document.getElementById('category');
+        const editIdInput = document.getElementById('edit-id');
+        const formHelperText = document.getElementById('form-helper-text');
+        const questionListContainer = document.getElementById('question-list-container');
+        const searchInput = document.getElementById('search-input');
+        const categoryFilter = document.getElementById('category-filter');
+        const seasonFilter = document.getElementById('season-filter');
+        const pictureOptionsDiv = document.getElementById('picture-options');
+        const pictureTypeSelect = document.getElementById('picture-type');
+        const topicInput = document.getElementById('topic');
+        const questionInput = document.getElementById('question');
+
+        // --- Tab Logic ---
+        function switchTab(activeTab) {
+            Object.keys(tabs).forEach(key => {
+                if (tabs[key]) {
+                    tabs[key].classList.toggle('active', key === activeTab);
+                    pages[key].style.display = key === activeTab ? 'block' : 'none';
+                }
+            });
+        }
+        Object.keys(tabs).forEach(key => {
+            if (tabs[key]) {
+                tabs[key].addEventListener('click', () => switchTab(key));
+            }
+        });
+        
+        tabs.manual.addEventListener('click', () => {
+            switchTab('manual');
+            editIdInput.value = ''; // Clear edit state
+            form.reset();
+            uploadButton.textContent = 'Add Question';
+            formHelperText.textContent = 'Fill out the form below to add a new question.';
+            togglePictureOptions();
+        });
+
+
+        // --- Manage Questions Logic ---
+        async function loadAndRenderQuestions() {
+            questionListContainer.innerHTML = '<p>Loading questions...</p>';
+            try {
+                const q = query(collection(db, "questions"));
+                const querySnapshot = await getDocs(q);
+                allQuestions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderFilteredQuestions();
+            } catch (error) {
+                console.error("Error fetching questions:", error);
+                questionListContainer.innerHTML = '<p class="text-red-500">Error loading questions.</p>';
+            }
+        }
+
+        function renderFilteredQuestions() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const categoryValue = categoryFilter.value;
+            const seasonValue = seasonFilter.value;
+
+            const filtered = allQuestions.filter(q => {
+                const qQuestion = q.question || '';
+                const qTopic = q.topic || '';
+                const matchesSearch = searchTerm === '' || qQuestion.toLowerCase().includes(searchTerm) || qTopic.toLowerCase().includes(searchTerm);
+                const matchesCategory = categoryValue === '' || q.category === categoryValue;
+                const matchesSeason = seasonValue === '' || (q.season && q.season.toString() === seasonValue);
+                return matchesSearch && matchesCategory && matchesSeason;
+            });
+
+            questionListContainer.innerHTML = '';
+            if (filtered.length === 0) {
+                questionListContainer.innerHTML = '<p>No questions found matching your criteria.</p>';
+                return;
+            }
+
+            filtered.forEach(q => {
+                const item = document.createElement('div');
+                item.className = 'p-2 bg-gray-700 rounded flex justify-between items-center';
+                item.innerHTML = `
+                    <div>
+                        <p class="font-bold">${q.question}</p>
+                        <p class="text-sm text-gray-400">Category: ${q.category || 'N/A'} | Season: ${q.season || 'N/A'} | Topic: ${q.topic}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button data-id="${q.id}" class="edit-btn bg-blue-600 text-xs px-2 py-1 rounded">Edit</button>
+                        <button data-id="${q.id}" class="delete-btn bg-red-700 text-xs px-2 py-1 rounded">Delete</button>
+                    </div>
+                `;
+                questionListContainer.appendChild(item);
+            });
+        }
+        
+        searchInput.addEventListener('input', renderFilteredQuestions);
+        categoryFilter.addEventListener('change', renderFilteredQuestions);
+        seasonFilter.addEventListener('input', renderFilteredQuestions);
+
+        questionListContainer.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('edit-btn')) {
+                const id = e.target.dataset.id;
+                const questionToEdit = allQuestions.find(q => q.id === id);
+                if (questionToEdit) {
+                    editIdInput.value = id;
+                    form.elements['category'].value = questionToEdit.category || 'bulk';
+                    form.elements['season'].value = questionToEdit.season || 1;
+                    topicInput.value = questionToEdit.topic || '';
+                    questionInput.value = questionToEdit.question || '';
+                    form.elements['imageUrl'].value = questionToEdit.imageUrl || '';
+                    form.elements['answer-a'].value = questionToEdit['answer a'] || '';
+                    form.elements['answer-b'].value = questionToEdit['answer b'] || '';
+                    form.elements['answer-c'].value = questionToEdit['answer c'] || '';
+                    form.elements['answer-d'].value = questionToEdit['answer d'] || '';
+                    
+                    const correctRadio = document.querySelector(`input[name="correct-answer"][value="${questionToEdit['correct answer']}"]`);
+                    if(correctRadio) correctRadio.checked = true;
+                    
+                    togglePictureOptions();
+                    if (questionToEdit.category === 'picture') {
+                        if (questionToEdit.topic.toLowerCase().includes('album')) {
+                            pictureTypeSelect.value = 'album';
+                        } else {
+                            pictureTypeSelect.value = 'band';
+                        }
+                    }
+
+                    uploadButton.textContent = 'Save Changes';
+                    formHelperText.textContent = 'You are now editing an existing question.';
+                    switchTab('manual');
+                }
+            } else if (e.target.classList.contains('delete-btn')) {
+                const id = e.target.dataset.id;
+                if (confirm('Are you sure you want to delete this question?')) {
+                    try {
+                        await deleteDoc(doc(db, "questions", id));
+                        loadAndRenderQuestions();
+                    } catch (error) {
+                        console.error("Error deleting document: ", error);
+                        alert("Could not delete question. Check the console for details.");
+                    }
+                }
+            }
+        });
+
+
+        // --- Manual Uploader Logic ---
+        function togglePictureOptions() {
+            if (categorySelect.value === 'picture') {
+                pictureOptionsDiv.classList.remove('hidden');
+                pictureTypeSelect.dispatchEvent(new Event('change'));
+            } else {
+                pictureOptionsDiv.classList.add('hidden');
+            }
+        }
+        
+        categorySelect.addEventListener('change', togglePictureOptions);
+        imageUrlInput.addEventListener('input', () => {
+            if (imageUrlInput.value.trim() !== '') {
+                categorySelect.value = 'picture';
+                togglePictureOptions();
+            }
+        });
+        pictureTypeSelect.addEventListener('change', () => {
+            const type = pictureTypeSelect.value;
+            if (type === 'album') {
+                topicInput.value = 'Album Recognition';
+                questionInput.value = 'What album is this?';
+            } else if (type === 'band') {
+                topicInput.value = 'Band Recognition';
+                questionInput.value = 'What band is this?';
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const questionData = {
+                category: formData.get('category'),
+                season: parseInt(formData.get('season'), 10),
+                topic: formData.get('topic'),
+                question: formData.get('question'),
+                imageUrl: formData.get('imageUrl') || null,
+                'answer a': formData.get('answer-a'),
+                'answer b': formData.get('answer-b'),
+                'answer c': formData.get('answer-c'),
+                'answer d': formData.get('answer-d'),
+                'correct answer': formData.get('correct-answer'),
+            };
+
+            if (!questionData.imageUrl) delete questionData.imageUrl;
+
+            const isEditing = editIdInput.value !== '';
+            statusMessage.textContent = isEditing ? 'Saving changes...' : 'Uploading question...';
+            statusMessage.style.color = 'white';
+            uploadButton.disabled = true;
+            uploadButton.textContent = isEditing ? 'Saving...' : 'Uploading...';
+
+            try {
+                if (isEditing) {
+                    await setDoc(doc(db, "questions", editIdInput.value), questionData);
+                    statusMessage.textContent = 'Successfully saved changes!';
+                } else {
+                    await addDoc(collection(db, "questions"), questionData);
+                    statusMessage.textContent = 'Successfully added new question!';
+                }
+                
+                statusMessage.style.color = 'green';
+                form.reset();
+                editIdInput.value = '';
+                uploadButton.textContent = 'Add Question';
+                formHelperText.textContent = 'Fill out the form below to add a new question.';
+                togglePictureOptions();
+                
+                await loadAndRenderQuestions();
+                setTimeout(() => switchTab('manage'), 1000);
+
+            } catch (error) {
+                statusMessage.textContent = `Error: ${error.message}.`;
+                statusMessage.style.color = 'red';
+                console.error("Upload/Edit error:", error);
+            } finally {
+                uploadButton.disabled = false;
+                 uploadButton.textContent = editIdInput.value ? 'Save Changes' : 'Add Question';
+            }
+        });
+
+        // --- AI Generator Logic ---
+        const generateButton = document.getElementById('generate-button');
+        const aiStatusMessage = document.getElementById('ai-status-message');
+        const aiQuestionTypeSelect = document.getElementById('ai-question-type');
+        const aiInputsContainer = document.getElementById('ai-inputs');
+
+        function renderAiInputs() { /* ... */ } // This function remains the same
+
+        aiQuestionTypeSelect.addEventListener('change', renderAiInputs);
+        renderAiInputs(); 
+        
+        generateButton.addEventListener('click', async () => { /* ... This function remains the same ... */ });
+        
+        // --- Bulk Uploader Logic ---
+        const bulkUploadButton = document.getElementById('bulk-upload-button');
+        const jsonInput = document.getElementById('json-input');
+        const bulkStatusMessage = document.getElementById('bulk-status-message');
+
+        bulkUploadButton.addEventListener('click', async () => {
+            const jsonText = jsonInput.value.trim();
+            if (!jsonText) {
+                bulkStatusMessage.textContent = "Error: Text box is empty.";
+                bulkStatusMessage.style.color = 'red';
+                return;
+            }
+
+            try {
+                const questions = JSON.parse(jsonText);
+                if (!Array.isArray(questions)) {
+                    throw new Error("Input is not a valid JSON array.");
+                }
+
+                bulkStatusMessage.textContent = `Uploading ${questions.length} questions...`;
+                bulkStatusMessage.style.color = 'white';
+                bulkUploadButton.disabled = true;
+                bulkUploadButton.textContent = 'Uploading...';
+
+                const batch = writeBatch(db);
+                const questionsCollectionRef = collection(db, "questions");
+
+                questions.forEach(questionData => {
+                    const newQuestionRef = doc(questionsCollectionRef);
+                    batch.set(newQuestionRef, questionData);
+                });
+
+                await batch.commit();
+
+                bulkStatusMessage.textContent = `Successfully uploaded ${questions.length} questions!`;
+                bulkStatusMessage.style.color = 'green';
+                jsonInput.value = '';
+                await loadAndRenderQuestions();
+
+            } catch (error) {
+                bulkStatusMessage.textContent = `Error: ${error.message}. Please check the console for details.`;
+                bulkStatusMessage.style.color = 'red';
+                console.error("Bulk Upload Error:", error);
+            } finally {
+                bulkUploadButton.disabled = false;
+                bulkUploadButton.textContent = 'Upload JSON';
+            }
+        });
+
+        
+        // Initial Load
+        loadAndRenderQuestions();
+
+    </script>
+</body>
+</html>
+
