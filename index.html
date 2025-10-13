@@ -48,7 +48,7 @@
         </div>
 
         <!-- Manage Questions Tab -->
-        <div id="manage-uploader" style="display: none;">
+        <div id="manage-uploader">
             <div class="flex flex-col sm:flex-row gap-4 mb-4">
                 <input type="text" id="search-input" placeholder="Search questions...">
                 <select id="category-filter">
@@ -57,7 +57,10 @@
                     <option value="curated">Curated</option>
                     <option value="picture">Picture</option>
                 </select>
-                <input type="number" id="season-filter" placeholder="Filter by Season">
+                <select id="season-filter">
+                    <option value="">All Seasons</option>
+                    <option value="unassigned">Unassigned</option>
+                </select>
             </div>
             <div id="question-list-container" class="space-y-2 max-h-[60vh] overflow-y-auto p-2 bg-gray-800 rounded">
                 <!-- Questions will be loaded here -->
@@ -283,7 +286,13 @@
                 </div>
             `;
 
-            Object.keys(stats).sort().forEach(season => {
+            const sortedSeasons = Object.keys(stats).sort((a, b) => {
+                if (a === 'Unassigned') return 1;
+                if (b === 'Unassigned') return -1;
+                return a - b;
+            });
+
+            sortedSeasons.forEach(season => {
                 const seasonStats = stats[season];
                 const seasonCard = document.createElement('div');
                 seasonCard.className = 'bg-gray-800 p-4 rounded-lg';
@@ -297,6 +306,17 @@
                     </div>
                 `;
                 statsContainer.appendChild(seasonCard);
+            });
+
+            // Populate season filter dropdown
+            seasonFilter.innerHTML = '<option value="">All Seasons</option><option value="unassigned">Unassigned</option>';
+            sortedSeasons.forEach(season => {
+                if(season !== 'Unassigned') {
+                    const option = document.createElement('option');
+                    option.value = season;
+                    option.textContent = `Season ${season}`;
+                    seasonFilter.appendChild(option);
+                }
             });
         }
 
@@ -312,7 +332,16 @@
                 const qTopic = q.topic || '';
                 const matchesSearch = searchTerm === '' || qQuestion.toLowerCase().includes(searchTerm) || qTopic.toLowerCase().includes(searchTerm);
                 const matchesCategory = categoryValue === '' || q.category === categoryValue;
-                const matchesSeason = seasonValue === '' || (q.season && q.season.toString() === seasonValue);
+                
+                let matchesSeason;
+                if (seasonValue === '') {
+                    matchesSeason = true;
+                } else if (seasonValue === 'unassigned') {
+                    matchesSeason = !q.season;
+                } else {
+                    matchesSeason = q.season && q.season.toString() === seasonValue;
+                }
+
                 return matchesSearch && matchesCategory && matchesSeason;
             });
 
@@ -348,7 +377,7 @@
         
         searchInput.addEventListener('input', renderFilteredQuestions);
         categoryFilter.addEventListener('change', renderFilteredQuestions);
-        seasonFilter.addEventListener('input', renderFilteredQuestions);
+        seasonFilter.addEventListener('change', renderFilteredQuestions);
 
         questionListContainer.addEventListener('click', async (e) => {
             if (e.target.classList.contains('edit-btn')) {
@@ -682,4 +711,5 @@
     </script>
 </body>
 </html>
+
 
