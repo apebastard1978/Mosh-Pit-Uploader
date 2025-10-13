@@ -48,7 +48,7 @@
         </div>
 
         <!-- Manage Questions Tab -->
-        <div id="manage-uploader">
+        <div id="manage-uploader" style="display: none;">
             <div class="flex flex-col sm:flex-row gap-4 mb-4">
                 <input type="text" id="search-input" placeholder="Search questions...">
                 <select id="category-filter">
@@ -555,20 +555,20 @@
                 const album = document.getElementById('ai-album').value.trim();
                 const year = document.getElementById('ai-year').value.trim();
                 if (!band || !album || !year) { aiStatusMessage.textContent = "Please fill all fields."; aiStatusMessage.style.color = 'red'; return; }
-                userQuery = `Create a multiple-choice trivia question asking what year the band '${band}' released the album ${album}. The correct answer is ${year}. Generate three plausible but incorrect year choices. In the generated "question" text, do not put quotation marks or any other brackets around the album title. Format the output as a JSON object with keys: topic, question, "answer a", "answer b", "answer c", "answer d", and "correct answer", where the value for "correct answer" is ONLY the corresponding letter (A, B, C, or D). The topic should be the band name.`;
+                userQuery = `Create a multiple-choice trivia question with the exact question text: "What year did ${band} release the album ${album}?". The correct answer is ${year}. Generate three plausible but incorrect year choices. Format the output as a JSON object with keys: topic, question, "answer a", "answer b", "answer c", "answer d", and "correct answer", where the value for "correct answer" is ONLY the corresponding letter (A, B, C, or D). The topic should be the band name.`;
             } else if (questionType === 'song-lyric') {
                 const band = document.getElementById('ai-band').value.trim();
                 const lyric = document.getElementById('ai-lyric').value.trim();
                 const song = document.getElementById('ai-song').value.trim();
                 if (!band || !lyric || !song) { aiStatusMessage.textContent = "Please fill all fields."; aiStatusMessage.style.color = 'red'; return; }
-                userQuery = `Create a multiple-choice trivia question for the following lyric: "${lyric}". The question should ask "Which ${band} song features this lyric?". The correct answer is "${song}". Generate three other plausible song titles by ${band} as incorrect answers. In the generated "question" text, ensure the song title is enclosed in double quotes. Format the output as a JSON object with keys: topic, question, "answer a", "answer b", "answer c", "answer d", and "correct answer", where the value for "correct answer" is ONLY the corresponding letter (A, B, C, or D). The topic should be the band name.`;
+                userQuery = `Create a multiple-choice trivia question with the exact question text: 'What song is this? "${lyric}"'. The topic must be "${band}". The correct answer is "${song}". Generate three other plausible song titles by the same band, "${band}", as incorrect answers. Format the output as a JSON object with keys: topic, question, "answer a", "answer b", "answer c", "answer d", and "correct answer", where the value for "correct answer" is ONLY the corresponding letter (A, B, C, or D).`;
                 categoryToSet = 'curated';
             } else if (questionType === 'song-album') {
                 const band = document.getElementById('ai-band').value.trim();
                 const song = document.getElementById('ai-song').value.trim();
                 const album = document.getElementById('ai-album').value.trim();
                 if (!band || !song || !album) { aiStatusMessage.textContent = "Please fill all fields."; aiStatusMessage.style.color = 'red'; return; }
-                userQuery = `Create a multiple-choice trivia question asking on what album the song "${song}" by ${band} is included. The correct answer is "${album}". Generate three other plausible album titles by ${band} as incorrect answers. In the generated "question" text, ensure the song title is enclosed in double quotes. Format the output as a JSON object with keys: topic, question, "answer a", "answer b", "answer c", "answer d", and "correct answer", where the value for "correct answer" is ONLY the corresponding letter (A, B, C, or D). The topic should be the band name.`;
+                userQuery = `Create a multiple-choice trivia question with the exact question text: 'What album includes the song "${song}"?'. The topic must be "${band}". The correct answer is "${album}". Generate three other plausible album titles by the same band, "${band}", as incorrect answers. Format the output as a JSON object with keys: topic, question, "answer a", "answer b", "answer c", "answer d", and "correct answer", where the value for "correct answer" is ONLY the corresponding letter (A, B, C, or D).`;
                 categoryToSet = 'bulk';
             }
 
@@ -711,5 +711,4 @@
     </script>
 </body>
 </html>
-
 
