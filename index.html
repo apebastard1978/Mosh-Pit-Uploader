@@ -56,6 +56,7 @@
                     <option value="bulk">Bulk</option>
                     <option value="curated">Curated</option>
                     <option value="picture">Picture</option>
+                    <option value="true-false">True/False</option>
                 </select>
                 <select id="season-filter">
                     <option value="">All Seasons</option>
@@ -82,6 +83,7 @@
                             <option value="bulk">Bulk Question</option>
                             <option value="curated">Curated Question</option>
                             <option value="picture">Picture Question</option>
+                            <option value="true-false">True/False Question</option>
                         </select>
                     </div>
                     <div>
@@ -106,19 +108,19 @@
                     <label for="question" class="block mb-2 text-sm font-medium text-gray-300">Question Text</label>
                     <input type="text" id="question" name="question" placeholder="e.g., Which band is this?" required>
                 </div>
-                 <div>
+                 <div id="image-url-container">
                     <label for="imageUrl" class="block mb-2 text-sm font-medium text-gray-300">Image URL (Optional)</label>
                     <input type="text" id="imageUrl" name="imageUrl" placeholder="https://i.imgur.com/your-image.jpg">
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="answers-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div><label for="answer-a" class="block mb-2 text-sm font-medium">Answer A</label><input type="text" id="answer-a" name="answer-a" required></div>
                     <div><label for="answer-b" class="block mb-2 text-sm font-medium">Answer B</label><input type="text" id="answer-b" name="answer-b" required></div>
                     <div><label for="answer-c" class="block mb-2 text-sm font-medium">Answer C</label><input type="text" id="answer-c" name="answer-c" required></div>
                     <div><label for="answer-d" class="block mb-2 text-sm font-medium">Answer D</label><input type="text" id="answer-d" name="answer-d" required></div>
                 </div>
 
-                <div>
+                <div id="correct-answer-container">
                     <label class="block mb-2 text-sm font-medium text-gray-300">Correct Answer</label>
                     <div class="flex items-center gap-x-6 gap-y-2 flex-wrap">
                         <div class="flex items-center"><input id="correct-a" name="correct-answer" type="radio" value="A" class="h-4 w-4 text-red-600" checked><label for="correct-a" class="ml-2">A</label></div>
@@ -127,6 +129,15 @@
                         <div class="flex items-center"><input id="correct-d" name="correct-answer" type="radio" value="D" class="h-4 w-4 text-red-600"><label for="correct-d" class="ml-2">D</label></div>
                     </div>
                 </div>
+
+                 <div id="true-false-container" class="hidden">
+                    <label class="block mb-2 text-sm font-medium text-gray-300">Correct Answer</label>
+                     <div class="flex items-center gap-x-6 gap-y-2 flex-wrap">
+                        <div class="flex items-center"><input id="correct-true" name="correct-tf" type="radio" value="True" class="h-4 w-4 text-red-600" checked><label for="correct-true" class="ml-2">True</label></div>
+                        <div class="flex items-center"><input id="correct-false" name="correct-tf" type="radio" value="False" class="h-4 w-4 text-red-600"><label for="correct-false" class="ml-2">False</label></div>
+                    </div>
+                </div>
+
 
                 <button id="upload-button" type="submit" class="mt-4 w-full bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded transition">Add Question</button>
             </form>
@@ -186,7 +197,7 @@
         const auth = getAuth(app);
 
         // --- Global State ---
-        let allQuestions = []; // To cache questions for filtering
+        let allQuestions = [];
 
         // --- DOM Elements ---
         const tabs = {
@@ -219,6 +230,17 @@
         const topicInput = document.getElementById('topic');
         const questionInput = document.getElementById('question');
         const statsContainer = document.getElementById('stats-container');
+        const answersContainer = document.getElementById('answers-container');
+        const correctAnswerContainer = document.getElementById('correct-answer-container');
+        const trueFalseContainer = document.getElementById('true-false-container');
+        const imageUrlContainer = document.getElementById('image-url-container');
+        const generateButton = document.getElementById('generate-button');
+        const aiStatusMessage = document.getElementById('ai-status-message');
+        const aiQuestionTypeSelect = document.getElementById('ai-question-type');
+        const aiInputsContainer = document.getElementById('ai-inputs');
+        const bulkUploadButton = document.getElementById('bulk-upload-button');
+        const jsonInput = document.getElementById('json-input');
+        const bulkStatusMessage = document.getElementById('bulk-status-message');
 
 
         // --- Tab Logic ---
@@ -238,11 +260,11 @@
         
         tabs.manual.addEventListener('click', () => {
             switchTab('manual');
-            editIdInput.value = ''; // Clear edit state
+            editIdInput.value = '';
             form.reset();
             uploadButton.textContent = 'Add Question';
             formHelperText.textContent = 'Fill out the form below to add a new question.';
-            togglePictureOptions();
+            toggleFormForCategory();
         });
 
 
@@ -268,9 +290,9 @@
             const stats = allQuestions.reduce((acc, q) => {
                 const season = q.season || 'Unassigned';
                 if (!acc[season]) {
-                    acc[season] = { bulk: 0, curated: 0, picture: 0, total: 0 };
+                    acc[season] = { bulk: 0, curated: 0, picture: 0, 'true-false': 0, total: 0 };
                 }
-                const category = q.category || 'bulk'; // Default to bulk if not specified
+                const category = q.category || 'bulk';
                 if (!acc[season][category]) {
                      acc[season][category] = 0;
                 }
@@ -298,17 +320,17 @@
                 seasonCard.className = 'bg-gray-800 p-4 rounded-lg';
                 seasonCard.innerHTML = `
                     <h2 class="text-xl font-bold text-red-600">Season ${season}</h2>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2 text-center">
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mt-2 text-center">
                         <div><p class="text-gray-400">Bulk</p><p class="text-2xl font-bold">${seasonStats.bulk || 0}</p></div>
                         <div><p class="text-gray-400">Curated</p><p class="text-2xl font-bold">${seasonStats.curated || 0}</p></div>
                         <div><p class="text-gray-400">Picture</p><p class="text-2xl font-bold">${seasonStats.picture || 0}</p></div>
+                        <div><p class="text-gray-400">True/False</p><p class="text-2xl font-bold">${seasonStats['true-false'] || 0}</p></div>
                         <div><p class="text-gray-400">Total</p><p class="text-2xl font-bold">${seasonStats.total || 0}</p></div>
                     </div>
                 `;
                 statsContainer.appendChild(seasonCard);
             });
 
-            // Populate season filter dropdown
             seasonFilter.innerHTML = '<option value="">All Seasons</option><option value="unassigned">Unassigned</option>';
             sortedSeasons.forEach(season => {
                 if(season !== 'Unassigned') {
@@ -321,7 +343,7 @@
         }
 
 
-        // --- Manage Questions Logic (Filtering and Rendering) ---
+        // --- Manage Questions Logic ---
         function renderFilteredQuestions() {
             const searchTerm = searchInput.value.toLowerCase();
             const categoryValue = categoryFilter.value;
@@ -390,15 +412,21 @@
                     topicInput.value = questionToEdit.topic || '';
                     questionInput.value = questionToEdit.question || '';
                     form.elements['imageUrl'].value = questionToEdit.imageUrl || '';
-                    form.elements['answer-a'].value = questionToEdit['answer a'] || '';
-                    form.elements['answer-b'].value = questionToEdit['answer b'] || '';
-                    form.elements['answer-c'].value = questionToEdit['answer c'] || '';
-                    form.elements['answer-d'].value = questionToEdit['answer d'] || '';
                     
-                    const correctRadio = document.querySelector(`input[name="correct-answer"][value="${questionToEdit['correct answer']}"]`);
-                    if(correctRadio) correctRadio.checked = true;
+                    toggleFormForCategory(); 
+
+                    if(questionToEdit.category === 'true-false'){
+                        document.querySelector(`input[name="correct-tf"][value="${questionToEdit['answer a']}"]`).checked = true;
+                    } else {
+                        form.elements['answer-a'].value = questionToEdit['answer a'] || '';
+                        form.elements['answer-b'].value = questionToEdit['answer b'] || '';
+                        form.elements['answer-c'].value = questionToEdit['answer c'] || '';
+                        form.elements['answer-d'].value = questionToEdit['answer d'] || '';
+                        const correctRadio = document.querySelector(`input[name="correct-answer"][value="${questionToEdit['correct answer']}"]`);
+                        if(correctRadio) correctRadio.checked = true;
+                    }
+
                     
-                    togglePictureOptions();
                     if (questionToEdit.category === 'picture') {
                         if (questionToEdit.topic.toLowerCase().includes('album')) {
                             pictureTypeSelect.value = 'album';
@@ -436,11 +464,24 @@
             }
         }
         
-        categorySelect.addEventListener('change', togglePictureOptions);
+        function toggleFormForCategory() {
+            const selectedCategory = categorySelect.value;
+            const isTf = selectedCategory === 'true-false';
+            
+            answersContainer.style.display = isTf ? 'none' : 'grid';
+            correctAnswerContainer.style.display = isTf ? 'none' : 'block';
+            trueFalseContainer.style.display = isTf ? 'block' : 'none';
+            
+            imageUrlContainer.style.display = isTf ? 'none' : 'block';
+            pictureOptionsDiv.classList.toggle('hidden', selectedCategory !== 'picture');
+        }
+
+        categorySelect.addEventListener('change', toggleFormForCategory);
+        
         imageUrlInput.addEventListener('input', () => {
             if (imageUrlInput.value.trim() !== '') {
                 categorySelect.value = 'picture';
-                togglePictureOptions();
+                toggleFormForCategory();
             }
         });
         pictureTypeSelect.addEventListener('change', () => {
@@ -458,20 +499,29 @@
             e.preventDefault();
             
             const formData = new FormData(form);
+            const category = formData.get('category');
+            
             const questionData = {
-                category: formData.get('category'),
+                category: category,
                 season: parseInt(formData.get('season'), 10),
                 topic: formData.get('topic'),
                 question: formData.get('question'),
-                imageUrl: formData.get('imageUrl') || null,
-                'answer a': formData.get('answer-a'),
-                'answer b': formData.get('answer-b'),
-                'answer c': formData.get('answer-c'),
-                'answer d': formData.get('answer-d'),
-                'correct answer': formData.get('correct-answer'),
             };
 
-            if (!questionData.imageUrl) delete questionData.imageUrl;
+            if (category === 'true-false') {
+                const correctTf = formData.get('correct-tf');
+                questionData['answer a'] = 'True';
+                questionData['answer b'] = 'False';
+                questionData['correct answer'] = correctTf === 'True' ? 'A' : 'B';
+            } else {
+                questionData.imageUrl = formData.get('imageUrl') || null;
+                if (!questionData.imageUrl) delete questionData.imageUrl;
+                questionData['answer a'] = formData.get('answer-a');
+                questionData['answer b'] = formData.get('answer-b');
+                questionData['answer c'] = formData.get('answer-c');
+                questionData['answer d'] = formData.get('answer-d');
+                questionData['correct answer'] = formData.get('correct-answer');
+            }
 
             const isEditing = editIdInput.value !== '';
             statusMessage.textContent = isEditing ? 'Saving changes...' : 'Uploading question...';
@@ -493,7 +543,7 @@
                 editIdInput.value = '';
                 uploadButton.textContent = 'Add Question';
                 formHelperText.textContent = 'Fill out the form below to add a new question.';
-                togglePictureOptions();
+                toggleFormForCategory();
                 
                 await loadAndProcessQuestions();
                 setTimeout(() => switchTab('manage'), 1000);
@@ -504,16 +554,12 @@
                 console.error("Upload/Edit error:", error);
             } finally {
                 uploadButton.disabled = false;
-                 uploadButton.textContent = editIdInput.value ? 'Save Changes' : 'Add Question';
+                uploadButton.textContent = editIdInput.value ? 'Save Changes' : 'Add Question';
             }
         });
 
         // --- AI Generator Logic ---
-        const generateButton = document.getElementById('generate-button');
-        const aiStatusMessage = document.getElementById('ai-status-message');
-        const aiQuestionTypeSelect = document.getElementById('ai-question-type');
-        const aiInputsContainer = document.getElementById('ai-inputs');
-
+        
         function renderAiInputs() {
             const selectedType = aiQuestionTypeSelect.value;
             aiInputsContainer.innerHTML = ''; 
@@ -646,10 +692,6 @@
         });
         
         // --- Bulk Uploader Logic ---
-        const bulkUploadButton = document.getElementById('bulk-upload-button');
-        const jsonInput = document.getElementById('json-input');
-        const bulkStatusMessage = document.getElementById('bulk-status-message');
-
         bulkUploadButton.addEventListener('click', async () => {
             const jsonText = jsonInput.value.trim();
             if (!jsonText) {
@@ -700,11 +742,12 @@
                 await signInAnonymously(auth);
                 console.log("Signed in anonymously");
                 loadAndProcessQuestions();
+                toggleFormForCategory();
             } catch(e) {
                 console.error("Anonymous sign in failed", e);
                 const errorMsg = `<p class="text-red-500">Could not connect to the database. Please check your Firebase setup and security rules.</p>`;
-                questionListContainer.innerHTML = errorMsg;
-                statsContainer.innerHTML = errorMsg;
+                if(questionListContainer) questionListContainer.innerHTML = errorMsg;
+                if(statsContainer) statsContainer.innerHTML = errorMsg;
             }
         };
 
